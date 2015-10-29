@@ -49,9 +49,15 @@ $mp->add_arg(
 
 $mp->add_arg(
     spec => 'device|D=s',
-    help => '',
-    required => 1
+    help => ''
 );
+
+$mp->add_arg(
+    spec    => 'scan',
+    help    => '',
+    default => 0
+);
+
 
 $mp->getopts;
 
@@ -71,12 +77,32 @@ my $cmcIIIDevName       = "1.3.6.1.4.1.2606.7.4.1.2.1.2.";
 my $cmcIIIDevType       = "1.3.6.1.4.1.2606.7.4.1.2.1.4.";
 
 my $result;
+my $device_name;
+my $device_type;
 
 $result = $session->get_request(
     -varbindlist => [$cmcIIINumberOfDevs]
 );
 
 my $device_number = $result->{$cmcIIINumberOfDevs};
+
+if($mp->opts->scan) {
+    print(" ID | Name \n");
+    print("----|----------------------\n");
+    for (my $i = 1; $i <= $device_number; $i++) {
+        $result = $session->get_request(
+            -varbindlist => [
+                $cmcIIIDevName . $i,
+                $cmcIIIDevType . $i
+            ]
+        );
+        $device_name = $result->{$cmcIIIDevName . $i};
+        $device_type = $result->{$cmcIIIDevType . $i};
+        printf("% 3u | %-16s\n", $i, $device_name);
+    }
+    exit(UNKNOWN);
+}
+
 if($mp->opts->device < 1 || $mp->opts->device > $device_number) {
     wrap_exit( UNKNOWN, 'Device ID not found');
 }
@@ -96,8 +122,8 @@ if (!defined($result)) {
     wrap_exit(UNKNOWN, $error_msg)
 }
 
-my $device_name = $result->{$cmcIIIDevName . $device_id};
-my $device_type = $result->{$cmcIIIDevType . $device_id};
+$device_name = $result->{$cmcIIIDevName . $device_id};
+$device_type = $result->{$cmcIIIDevType . $device_id};
 
 if($device_name eq 'CMCIII-TMP') {
     check_temp($session, $device_id);
