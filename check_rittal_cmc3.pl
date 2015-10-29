@@ -15,7 +15,7 @@ use constant DEPENDENT  => 4;
 my $pkg_nagios_available = 0;
 my $pkg_monitoring_available = 0;
 my @sensors_enabled = ();
-my @sensors_available = ('humidity', 'temperature', 'voltage');
+my @sensors_available = ('current', 'humidity', 'temperature', 'voltage');
 
 BEGIN {
     $pkg_nagios_available = try_load_class('Nagios::Plugin');
@@ -148,6 +148,7 @@ if($device_name eq 'CMCIII-HUM') {
     check_humidity($session, $device_id);
     check_temp($session, $device_id);
 } elsif($device_name eq 'PSM-M16') {
+    check_psm_current($session, $device_id, 2, 3);
     check_psm_voltage($session, $device_id, 2, 3);
 } elsif($device_name eq 'CMCIII-PU') {
     check_temp($session, $device_id);
@@ -212,6 +213,73 @@ sub check_humidity
         threshold => $threshold
     );
     $mp->add_message($threshold->get_status($value), 'Humidity: ' . $value . '%');
+}
+
+sub check_psm_current
+{
+    my ($session, $device_id, $circuits, $lines) = @_;
+    my $oid_base            = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
+    my @messages = ();
+    my $status = OK;
+
+    if (!grep(/^current$/, @sensors_enabled)) {
+        return;
+    }
+
+    for(my $circuit = 1; $circuit <= $circuits; $circuit++) {
+        for(my $line = 1; $line <= $lines; $line++) {
+            my @suboids = ();
+
+            @suboids = (44, 45, 46, 47, 48) if $circuit == 1 && $line == 1;
+            @suboids = (53, 54, 55, 56, 57) if $circuit == 1 && $line == 2;
+            @suboids = (62, 63, 64, 65, 66) if $circuit == 1 && $line == 3;
+            @suboids = (134, 135, 136, 137, 138) if $circuit == 2 && $line == 1;
+            @suboids = (143, 144, 145, 146, 147) if $circuit == 2 && $line == 2;
+            @suboids = (152, 153, 154, 155, 156) if $circuit == 2 && $line == 3;
+
+            wrap_exit(UNKNOWN, sprintf('Unkonwn circuit %u and line %u', $circuit, $line)) if (!@suboids);
+
+            my $oid_value           = $oid_base . '.' . $suboids[0];
+            my $oid_high_critical   = $oid_base . '.' . $suboids[1];
+            my $oid_high_warning    = $oid_base . '.' . $suboids[2];
+            my $oid_low_warning     = $oid_base . '.' . $suboids[3];
+            my $oid_low_critical    = $oid_base . '.' . $suboids[4];
+
+            $result = $session->get_request(
+                -varbindlist => [
+                    $oid_value,
+                    $oid_high_critical,
+                    $oid_high_warning,
+                    $oid_low_critical,
+                    $oid_low_warning
+                ]
+            );
+
+            my $value = $result->{$oid_value} / 100;
+            my $high_critical = $result->{$oid_high_critical} / 100;
+            my $high_warning = $result->{$oid_high_warning} / 100;
+            my $low_critical = $result->{$oid_low_critical} / 100;
+            my $low_warning = $result->{$oid_low_warning} / 100;
+
+            my $threshold = Monitoring::Plugin::Threshold->set_thresholds(
+                warning   => $high_warning,
+                critical  => $high_critical
+            );
+
+            $mp->add_perfdata(
+                label     => sprintf('c%ul%u_current', $circuit, $line),
+                value     => $value,
+                uom       => 'A',
+                threshold => $threshold
+            );
+            $status = $threshold->get_status($value) if ($threshold->get_status($value) > $status);
+            push(@messages, sprintf('C%uL%u: %.1fA', $circuit, $line, $value))
+        }
+    }
+    $mp->add_message(
+        $status,
+        sprintf('Current (%s)', join(', ', @messages))
+    );
 }
 
 sub check_psm_voltage
