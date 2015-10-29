@@ -127,6 +127,8 @@ $device_type = $result->{$cmcIIIDevType . $device_id};
 if($device_name eq 'CMCIII-HUM') {
     check_humidity($session, $device_id);
     check_temp($session, $device_id);
+} elsif($device_name eq 'CMCIII-PU') {
+    check_temp($session, $device_id);
 } elsif($device_name eq 'CMCIII-TMP') {
     check_temp($session, $device_id);
 } else {
