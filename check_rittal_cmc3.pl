@@ -124,8 +124,10 @@ if (!defined($result)) {
 
 $device_name = $result->{$cmcIIIDevName . $device_id};
 $device_type = $result->{$cmcIIIDevType . $device_id};
-
-if($device_name eq 'CMCIII-TMP') {
+if($device_name eq 'CMCIII-HUM') {
+    check_humidity($session, $device_id);
+    check_temp($session, $device_id);
+} elsif($device_name eq 'CMCIII-TMP') {
     check_temp($session, $device_id);
 } else {
     wrap_exit( UNKNOWN, 'Unsupported device: Name: ' . $device_name . ' Type: ' . $device_type);
@@ -142,6 +144,45 @@ sub wrap_exit
     } else {
         $mp->nagios_exit( @_ );
     }
+}
+
+sub check_humidity
+{
+    my ($session, $device_id) = @_;
+    my $oid_base = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
+    my $oid_value           = $oid_base . '.11';
+    my $oid_high_critical   = $oid_base . '.12';
+    my $oid_high_warning    = $oid_base . '.13';
+    my $oid_low_warning     = $oid_base . '.14';
+    my $oid_low_critical    = $oid_base . '.15';
+    $result = $session->get_request(
+        -varbindlist => [
+            $oid_value,
+            $oid_high_critical,
+            $oid_high_warning,
+            $oid_low_critical,
+            $oid_low_warning
+        ]
+    );
+
+    my $value = $result->{$oid_value} / 100;
+    my $high_critical = $result->{$oid_high_critical} / 100;
+    my $high_warning = $result->{$oid_high_warning} / 100;
+    my $low_critical = $result->{$oid_low_critical} / 100;
+    my $low_warning = $result->{$oid_low_warning} / 100;
+
+    my $threshold = Monitoring::Plugin::Threshold->set_thresholds(
+        warning   => $high_warning,
+        critical  => $high_critical
+    );
+
+    $mp->add_perfdata(
+        label     => 'humidity',
+        value     => $value,
+        uom       => '%',
+        threshold => $threshold
+    );
+    $mp->add_message($threshold->get_status($value), 'Humidity: ' . $value . '%');
 }
 
 sub check_temp
