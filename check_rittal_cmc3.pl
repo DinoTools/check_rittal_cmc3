@@ -15,7 +15,7 @@ use constant DEPENDENT  => 4;
 my $pkg_nagios_available = 0;
 my $pkg_monitoring_available = 0;
 my @sensors_enabled = ();
-my @sensors_available = ('current', 'humidity', 'temperature', 'voltage');
+my @sensors_available = ('current', 'humidity', 'power', 'temperature', 'voltage');
 
 BEGIN {
     $pkg_nagios_available = try_load_class('Nagios::Plugin');
@@ -149,6 +149,7 @@ if($device_name eq 'CMCIII-HUM') {
     check_temp($session, $device_id);
 } elsif($device_name eq 'PSM-M16') {
     check_psm_current($session, $device_id, 2, 3);
+    check_psm_power($session, $device_id, 2, 3);
     check_psm_voltage($session, $device_id, 2, 3);
 } elsif($device_name eq 'CMCIII-PU') {
     check_temp($session, $device_id);
@@ -279,6 +280,51 @@ sub check_psm_current
     $mp->add_message(
         $status,
         sprintf('Current (%s)', join(', ', @messages))
+    );
+}
+
+sub check_psm_power
+{
+    my ($session, $device_id, $circuits, $lines) = @_;
+    my $oid_base            = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
+    my @messages = ();
+
+    if (!grep(/^power$/, @sensors_enabled)) {
+        return;
+    }
+
+    for(my $circuit = 1; $circuit <= $circuits; $circuit++) {
+        for(my $line = 1; $line <= $lines; $line++) {
+            my @suboids = ();
+
+            @suboids = (73) if $circuit == 1 && $line == 1;
+            @suboids = (74) if $circuit == 1 && $line == 2;
+            @suboids = (75) if $circuit == 1 && $line == 3;
+            @suboids = (163) if $circuit == 2 && $line == 1;
+            @suboids = (164) if $circuit == 2 && $line == 2;
+            @suboids = (165) if $circuit == 2 && $line == 3;
+
+            wrap_exit(UNKNOWN, sprintf('Unkonwn circuit %u and line %u', $circuit, $line)) if (!@suboids);
+
+            my $oid_value           = $oid_base . '.' . $suboids[0];
+
+            $result = $session->get_request(
+                -varbindlist => [$oid_value]
+            );
+
+            my $value = $result->{$oid_value};
+
+            $mp->add_perfdata(
+                label     => sprintf('c%ul%u_power', $circuit, $line),
+                value     => $value,
+                uom       => 'W'
+            );
+            push(@messages, sprintf('C%uL%u: %.1fW', $circuit, $line, $value))
+        }
+    }
+    $mp->add_message(
+        OK,
+        sprintf('Power (%s)', join(', ', @messages))
     );
 }
 
