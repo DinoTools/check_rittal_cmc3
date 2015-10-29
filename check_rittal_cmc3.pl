@@ -293,9 +293,12 @@ sub check_psm_power
         return;
     }
 
+    my $oid_value;
+    my @suboids;
+    my $value;
     for(my $circuit = 1; $circuit <= $circuits; $circuit++) {
         for(my $line = 1; $line <= $lines; $line++) {
-            my @suboids = ();
+            @suboids = ();
 
             @suboids = (73) if $circuit == 1 && $line == 1;
             @suboids = (74) if $circuit == 1 && $line == 2;
@@ -306,26 +309,43 @@ sub check_psm_power
 
             wrap_exit(UNKNOWN, sprintf('Unkonwn circuit %u and line %u', $circuit, $line)) if (!@suboids);
 
-            my $oid_value           = $oid_base . '.' . $suboids[0];
+            $oid_value = $oid_base . '.' . $suboids[0];
 
             $result = $session->get_request(
                 -varbindlist => [$oid_value]
             );
 
-            my $value = $result->{$oid_value};
+            $value = $result->{$oid_value};
 
             $mp->add_perfdata(
                 label     => sprintf('c%ul%u_power', $circuit, $line),
                 value     => $value,
                 uom       => 'W'
             );
-            push(@messages, sprintf('C%uL%u: %.1fW', $circuit, $line, $value))
+            push(@messages, sprintf('L%u: %.1fW', $line, $value))
         }
+        @suboids = ();
+        @suboids = (5) if $circuit == 1;
+        @suboids = (95) if $circuit == 2;
+
+        $oid_value = $oid_base . '.' . $suboids[0];
+        $result = $session->get_request(
+            -varbindlist => [$oid_value]
+        );
+
+        $value = $result->{$oid_value};
+
+        $mp->add_perfdata(
+            label => sprintf('c%u_power', $circuit),
+            value => $value,
+            uom   => 'W'
+        );
+        $mp->add_message(
+            OK,
+            sprintf('Power C%u: %.1fW (%s)', $circuit, $value, join(', ', @messages))
+        );
     }
-    $mp->add_message(
-        OK,
-        sprintf('Power (%s)', join(', ', @messages))
-    );
+
 }
 
 sub check_psm_voltage
