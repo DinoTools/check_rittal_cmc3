@@ -14,6 +14,8 @@ use constant DEPENDENT  => 4;
 
 my $pkg_nagios_available = 0;
 my $pkg_monitoring_available = 0;
+my @sensors_enabled = ();
+my @sensors_available = ('humidity', 'temperature');
 
 BEGIN {
     $pkg_nagios_available = try_load_class('Nagios::Plugin');
@@ -58,8 +60,26 @@ $mp->add_arg(
     default => 0
 );
 
+$mp->add_arg(
+    spec    => 'sensor=s@',
+    help    => sprintf('Enabled sensors: all, %s (Default: all)', join(', ', @sensors_available)),
+    default => []
+);
+
 
 $mp->getopts;
+
+if(@{$mp->opts->sensor} == 0 || grep(/^all$/, @{$mp->opts->sensor})) {
+    @sensors_enabled = @sensors_available;
+} else {
+    foreach my $name (@{$mp->opts->sensor}) {
+        print($name);
+        if(!grep(/$name/, @sensors_available)) {
+            wrap_exit(UNKNOWN, sprintf('Unknown sensor type: %s', $name));
+        }
+    }
+    @sensors_enabled = @{$mp->opts->sensor};
+}
 
 #Open SNMP Session
 my ($session, $error) = Net::SNMP->session(
@@ -157,6 +177,11 @@ sub check_humidity
     my $oid_high_warning    = $oid_base . '.13';
     my $oid_low_warning     = $oid_base . '.14';
     my $oid_low_critical    = $oid_base . '.15';
+
+    if (!grep(/^humidity$/, @sensors_enabled)) {
+        return;
+    }
+
     $result = $session->get_request(
         -varbindlist => [
             $oid_value,
@@ -196,6 +221,11 @@ sub check_temp
     my $oid_high_warning    = $oid_base . '.4';
     my $oid_low_warning     = $oid_base . '.5';
     my $oid_low_critical    = $oid_base . '.6';
+
+    if (!grep(/^temperature$/, @sensors_enabled)) {
+        return;
+    }
+
     $result = $session->get_request(
         -varbindlist => [
             $oid_value,
