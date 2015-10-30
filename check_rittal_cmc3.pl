@@ -73,7 +73,6 @@ if(@{$mp->opts->sensor} == 0 || grep(/^all$/, @{$mp->opts->sensor})) {
     @sensors_enabled = @sensors_available;
 } else {
     foreach my $name (@{$mp->opts->sensor}) {
-        print($name);
         if(!grep(/$name/, @sensors_available)) {
             wrap_exit(UNKNOWN, sprintf('Unknown sensor type: %s', $name));
         }
