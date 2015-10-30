@@ -269,7 +269,6 @@ sub check_psm_current
             $mp->add_perfdata(
                 label     => sprintf('c%ul%u_current', $circuit, $line),
                 value     => $value,
-                uom       => 'A',
                 threshold => $threshold
             );
             $status = $threshold->get_status($value) if ($threshold->get_status($value) > $status);
@@ -318,8 +317,7 @@ sub check_psm_power
 
             $mp->add_perfdata(
                 label     => sprintf('c%ul%u_power', $circuit, $line),
-                value     => $value,
-                uom       => 'W'
+                value     => $value
             );
             push(@messages, sprintf('L%u: %.1fW', $line, $value))
         }
@@ -336,8 +334,7 @@ sub check_psm_power
 
         $mp->add_perfdata(
             label => sprintf('c%u_power', $circuit),
-            value => $value,
-            uom   => 'W'
+            value => $value
         );
         $mp->add_message(
             OK,
@@ -401,7 +398,6 @@ sub check_psm_voltage
             $mp->add_perfdata(
                 label     => sprintf('c%ul%u_voltage', $circuit, $line),
                 value     => $value,
-                uom       => 'V',
                 threshold => $threshold
             );
             $status = $threshold->get_status($value) if ($threshold->get_status($value) > $status);
@@ -453,7 +449,6 @@ sub check_temp
     $mp->add_perfdata(
         label     => 'temperature',
         value     => $value,
-        uom       => 'C',
         threshold => $threshold
     );
     $mp->add_message($threshold->get_status($value), 'Temperature: ' . $value . '°C');
