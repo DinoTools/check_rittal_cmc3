@@ -1,0 +1,18 @@
+name: check_rittal_cmc3
+description: "file:///README.md"
+url: "https://github.com/DinoTools/check_rittal_cmc3"
+tags: CMC, CMC3 
+vendor: Rittal
+target: Snmp, Sensor
+type: Plugin
+license: gplv3
+releases: 
+  - 
+    name: 0.2
+    description: "Version 0.2"
+    files: 
+      - 
+        name: check_rittal_cmc3.pl
+        url: "file:///check_rittal_cmc3.pl"
+        description: "Version 0.2"
+        checksum: d6ac1658b88500ebc6268c9895b3d457
