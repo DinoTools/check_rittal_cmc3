@@ -15,7 +15,7 @@ use constant DEPENDENT  => 4;
 my $pkg_nagios_available = 0;
 my $pkg_monitoring_available = 0;
 my @sensors_enabled = ();
-my @sensors_available = ('current', 'humidity', 'power', 'temperature', 'voltage');
+my @sensors_available = ('current', 'humidity', 'leakage', 'power', 'temperature', 'voltage');
 
 BEGIN {
     $pkg_nagios_available = try_load_class('Nagios::Plugin');
@@ -146,6 +146,8 @@ $device_type = $result->{$cmcIIIDevType . $device_id};
 if($device_name eq 'CMCIII-HUM') {
     check_humidity($session, $device_id);
     check_temp($session, $device_id);
+} elsif($device_name eq 'CMCIII-LEAK') {
+    check_leak($session, $device_id);
 } elsif($device_name eq 'PSM-M16') {
     check_psm_current($session, $device_id, 2, 3);
     check_psm_power($session, $device_id, 2, 3);
@@ -213,6 +215,34 @@ sub check_humidity
         threshold => $threshold
     );
     $mp->add_message($threshold->get_status($value), 'Humidity: ' . $value . '%');
+}
+
+sub check_leak
+{
+    my ($session, $device_id) = @_;
+    my $oid_base_text    = '1.3.6.1.4.1.2606.7.4.2.2.1.10.' . $device_id;
+    my $oid_base_value   = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
+    my $oid_status_text  = $oid_base_text . '.4';
+    my $oid_status_value = $oid_base_value . '.4';
+    my $result_status    = OK;
+
+    if (!grep(/^leakage$/, @sensors_enabled)) {
+        return;
+    }
+
+    $result = $session->get_request(
+        -varbindlist => [
+            $oid_status_text,
+            $oid_status_value
+        ]
+    );
+    my $status_text = $result->{$oid_status_text};
+    my $status_value = $result->{$oid_status_value};
+    if ($status_value != 4) {
+        $result_status = CRITICAL;
+    }
+
+    $mp->add_message($result_status, 'Status: ' . $status_text);
 }
 
 sub check_psm_current
