@@ -230,9 +230,7 @@ sub check_io3_input
     my ($session, $device_id) = @_;
     my $oid_base_text         = '1.3.6.1.4.1.2606.7.4.2.2.1.10.' . $device_id;
     my $oid_base_value        = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
-    my $result_status    = OK;
-    my @result_texts     = ();
-    my %input_warning = map { $_ => 1 } @{$mp->opts->input_warning};
+    my %input_warning         = map { $_ => 1 } @{$mp->opts->input_warning};
 
     if (!grep(/^input$/, @sensors_enabled)) {
         return;
@@ -255,20 +253,16 @@ sub check_io3_input
         my $label = $result->{$oid_label};
         my $status_text = $result->{$oid_status_text};
         my $status_value = $result->{$oid_status_value};
-        my $current_result_status = OK;
+        my $result_status = OK;
         if ($status_value == 5) {
             if (exists($input_warning{$i + 1})) {
-                $current_result_status = WARNING;
+                $result_status = WARNING;
             } else {
-                $current_result_status = CRITICAL;
+                $result_status = CRITICAL;
             }
         }
-        if ($current_result_status > $result_status) {
-            $result_status = $current_result_status;
-        }
-        push @result_texts, sprintf('%s: %s', $label, $status_text);
+        $mp->add_message($result_status, sprintf('%s: %s', $label, $status_text));
     }
-    $mp->add_message($result_status, join('; ', @result_texts));
 }
 
 sub check_leak
