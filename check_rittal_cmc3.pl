@@ -15,7 +15,7 @@ use constant DEPENDENT  => 4;
 my $pkg_nagios_available = 0;
 my $pkg_monitoring_available = 0;
 my @sensors_enabled = ();
-my @sensors_available = ('current', 'humidity', 'leakage', 'power', 'temperature', 'voltage');
+my @sensors_available = ('current', 'humidity', 'input', 'leakage', 'power', 'temperature', 'voltage');
 
 BEGIN {
     $pkg_nagios_available = try_load_class('Nagios::Plugin');
@@ -63,6 +63,12 @@ $mp->add_arg(
 $mp->add_arg(
     spec    => 'sensor=s@',
     help    => sprintf('Enabled sensors: all, %s (Default: all)', join(', ', @sensors_available)),
+    default => []
+);
+
+$mp->add_arg(
+    spec    => 'input_warning=i@',
+    help    => 'Report this input alarms as warning instead of critical.',
     default => []
 );
 
@@ -146,6 +152,8 @@ $device_type = $result->{$cmcIIIDevType . $device_id};
 if($device_name eq 'CMCIII-HUM') {
     check_humidity($session, $device_id);
     check_temp($session, $device_id);
+} elsif($device_name eq 'CMCIII-IO3') {
+    check_io3_input($session, $device_id);
 } elsif($device_name eq 'CMCIII-LEAK') {
     check_leak($session, $device_id);
 } elsif($device_name eq 'PSM-M16') {
@@ -215,6 +223,52 @@ sub check_humidity
         threshold => $threshold
     );
     $mp->add_message($threshold->get_status($value), 'Humidity: ' . $value . '%');
+}
+
+sub check_io3_input
+{
+    my ($session, $device_id) = @_;
+    my $oid_base_text         = '1.3.6.1.4.1.2606.7.4.2.2.1.10.' . $device_id;
+    my $oid_base_value        = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
+    my $result_status    = OK;
+    my @result_texts     = ();
+    my %input_warning = map { $_ => 1 } @{$mp->opts->input_warning};
+
+    if (!grep(/^input$/, @sensors_enabled)) {
+        return;
+    }
+
+    for (my $i=0; $i < 8; $i++) {
+        my $id_label = $i * 6 + 1;
+        my $id_status = $i * 6 + 5;
+        my $oid_label        = $oid_base_text . ".$id_label";
+        my $oid_status_text  = $oid_base_text . ".$id_status";
+        my $oid_status_value = $oid_base_value . ".$id_status";
+        $result = $session->get_request(
+            -varbindlist => [
+                $oid_status_text,
+                $oid_status_value,
+                $oid_label
+            ]
+        );
+
+        my $label = $result->{$oid_label};
+        my $status_text = $result->{$oid_status_text};
+        my $status_value = $result->{$oid_status_value};
+        my $current_result_status = OK;
+        if ($status_value == 5) {
+            if (exists($input_warning{$i + 1})) {
+                $current_result_status = WARNING;
+            } else {
+                $current_result_status = CRITICAL;
+            }
+        }
+        if ($current_result_status > $result_status) {
+            $result_status = $current_result_status;
+        }
+        push @result_texts, sprintf('%s: %s', $label, $status_text);
+    }
+    $mp->add_message($result_status, join('; ', @result_texts));
 }
 
 sub check_leak
