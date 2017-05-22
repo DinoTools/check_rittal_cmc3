@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.3 (2017-05-22)
+----------------
+
+- Add support for CMCIII-LEAK sensor
+- Add support for CMCIII-IO3 sensor
+
 0.2 (2015-10-30)
 ----------------
 
