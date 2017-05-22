@@ -7,10 +7,19 @@ target: Snmp, Sensor
 type: Plugin
 license: gplv3
 releases: 
-  - 
+  -
+    name: 0.3
+    description: "Version 0.3"
+    files:
+      -
+        name: check_rittal_cmc3.pl
+        url: "file:///check_rittal_cmc3.pl"
+        description: "Version 0.3"
+        checksum: 248e7f2e80e60042974d6e6c67c376ff
+  -
     name: 0.2
     description: "Version 0.2"
-    files: 
+    files:
       - 
         name: check_rittal_cmc3.pl
         url: "file:///check_rittal_cmc3.pl"
