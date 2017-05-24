@@ -185,6 +185,7 @@ foreach my $device_id (@{$mp->opts->device}) {
         check_psm_voltage($session, $device_id, 2, 3);
     } elsif($device_name eq 'CMCIII-PU') {
         check_temp($session, $device_id);
+        check_pu_input($session, $device_id);
     } elsif($device_name eq 'CMCIII-TMP') {
         check_temp($session, $device_id);
     } else {
@@ -512,6 +513,47 @@ sub check_psm_voltage
     );
 }
 
+sub check_pu_input
+{
+    my ($session, $device_id) = @_;
+    my $oid_base_text         = '1.3.6.1.4.1.2606.7.4.2.2.1.10.' . $device_id;
+    my $oid_base_value        = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
+    my %input_warning         = map { $_ => 1 } @{$mp->opts->input_warning};
+
+    if (!grep(/^input$/, @sensors_enabled)) {
+        return;
+    }
+
+    my $input_offset = 16;
+
+    foreach my $i (@{$mp->opts->input}) {
+        my $id_label = ($i - 1) * 6 + 1 + $input_offset;
+        my $id_status = ($i - 1) * 6 + 5 + $input_offset;
+        my $oid_label        = $oid_base_text . ".$id_label";
+        my $oid_status_text  = $oid_base_text . ".$id_status";
+        my $oid_status_value = $oid_base_value . ".$id_status";
+        $result = $session->get_request(
+            -varbindlist => [
+                $oid_status_text,
+                $oid_status_value,
+                $oid_label
+            ]
+        );
+
+        my $label = $result->{$oid_label};
+        my $status_text = $result->{$oid_status_text};
+        my $status_value = $result->{$oid_status_value};
+        my $result_status = OK;
+        if ($status_value == 5) {
+            if (exists($input_warning{$i + 1})) {
+                $result_status = WARNING;
+            } else {
+                $result_status = CRITICAL;
+            }
+        }
+        $mp->add_message($result_status, sprintf('%s: %s', $label, $status_text));
+    }
+}
 
 sub check_temp
 {
