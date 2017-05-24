@@ -115,6 +115,7 @@ my $cmcIIIDevType       = "1.3.6.1.4.1.2606.7.4.1.2.1.4.";
 
 my $result;
 my $device_name;
+my $device_alias;
 my $device_type;
 
 $result = $session->get_request(
@@ -124,18 +125,20 @@ $result = $session->get_request(
 my $device_number = $result->{$cmcIIINumberOfDevs};
 
 if($mp->opts->scan) {
-    print(" ID | Name \n");
-    print("----|----------------------\n");
+    print(" ID | Name               | Description\n");
+    print("----|--------------------|---------------------------------\n");
     for (my $i = 1; $i <= $device_number; $i++) {
         $result = $session->get_request(
             -varbindlist => [
                 $cmcIIIDevName . $i,
+                $cmcIIIDevAlias . $i,
                 $cmcIIIDevType . $i
             ]
         );
         $device_name = $result->{$cmcIIIDevName . $i};
+        $device_alias = $result->{$cmcIIIDevAlias . $i};
         $device_type = $result->{$cmcIIIDevType . $i};
-        printf("% 3u | %-16s\n", $i, $device_name);
+        printf("% 3u | %-18s | %s\n", $i, $device_name, $device_alias);
     }
     exit(UNKNOWN);
 }
