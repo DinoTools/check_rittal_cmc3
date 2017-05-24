@@ -67,6 +67,12 @@ $mp->add_arg(
 );
 
 $mp->add_arg(
+    spec    => 'input=i@',
+    help    => 'Input IDs to check. Used with CMCIII-IO3 (Default: none)',
+    default => []
+);
+
+$mp->add_arg(
     spec    => 'input_warning=i@',
     help    => 'Report this input alarms as warning instead of critical.',
     default => []
@@ -236,9 +242,9 @@ sub check_io3_input
         return;
     }
 
-    for (my $i=0; $i < 8; $i++) {
-        my $id_label = $i * 6 + 1;
-        my $id_status = $i * 6 + 5;
+    foreach my $i (@{$mp->opts->input}) {
+        my $id_label = ($i - 1) * 6 + 1;
+        my $id_status = ($i - 1) * 6 + 5;
         my $oid_label        = $oid_base_text . ".$id_label";
         my $oid_status_text  = $oid_base_text . ".$id_status";
         my $oid_status_value = $oid_base_value . ".$id_status";
