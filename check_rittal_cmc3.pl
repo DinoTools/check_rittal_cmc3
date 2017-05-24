@@ -184,7 +184,7 @@ foreach my $device_id (@{$mp->opts->device}) {
         check_psm_power($session, $device_id, 2, 3);
         check_psm_voltage($session, $device_id, 2, 3);
     } elsif($device_name eq 'CMCIII-PU') {
-        check_temp($session, $device_id);
+        check_pu_temp($session, $device_id);
         check_pu_input($session, $device_id);
     } elsif($device_name eq 'CMCIII-TMP') {
         check_temp($session, $device_id);
@@ -553,6 +553,49 @@ sub check_pu_input
         }
         $mp->add_message($result_status, sprintf('%s: %s', $label, $status_text));
     }
+}
+
+sub check_pu_temp
+{
+    my ($session, $device_id) = @_;
+    my $oid_base = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
+    my $oid_value           = $oid_base . '.2';
+    my $oid_high_critical   = $oid_base . '.4';
+    my $oid_high_warning    = $oid_base . '.5';
+    my $oid_low_warning     = $oid_base . '.6';
+    my $oid_low_critical    = $oid_base . '.7';
+
+    if (!grep(/^temperature$/, @sensors_enabled)) {
+        return;
+    }
+
+    $result = $session->get_request(
+        -varbindlist => [
+            $oid_value,
+            $oid_high_critical,
+            $oid_high_warning,
+            $oid_low_critical,
+            $oid_low_warning
+        ]
+    );
+
+    my $value = $result->{$oid_value} / 100;
+    my $high_critical = $result->{$oid_high_critical} / 100;
+    my $high_warning = $result->{$oid_high_warning} / 100;
+    my $low_critical = $result->{$oid_low_critical} / 100;
+    my $low_warning = $result->{$oid_low_warning} / 100;
+
+    my $threshold = Monitoring::Plugin::Threshold->set_thresholds(
+        warning   => $high_warning,
+        critical  => $high_critical
+    );
+
+    $mp->add_perfdata(
+        label     => 'temperature',
+        value     => $value,
+        threshold => $threshold
+    );
+    $mp->add_message($threshold->get_status($value), 'Temperature: ' . $value . '°C');
 }
 
 sub check_temp
