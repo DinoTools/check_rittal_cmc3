@@ -15,7 +15,7 @@ use constant DEPENDENT  => 4;
 my $pkg_nagios_available = 0;
 my $pkg_monitoring_available = 0;
 my @sensors_enabled = ();
-my @sensors_available = ('current', 'humidity', 'input', 'leakage', 'power', 'temperature', 'voltage');
+my @sensors_available = ('access', 'current', 'humidity', 'input', 'leakage', 'power', 'temperature', 'voltage');
 
 BEGIN {
     $pkg_nagios_available = try_load_class('Nagios::Plugin');
@@ -185,6 +185,7 @@ foreach my $device_id (@{$mp->opts->device}) {
         check_psm_voltage($session, $device_id, 2, 3);
     } elsif($device_name eq 'CMCIII-PU') {
         check_pu_temp($session, $device_id);
+        check_pu_access($session, $device_id);
         check_pu_input($session, $device_id);
     } elsif($device_name eq 'CMCIII-TMP') {
         check_temp($session, $device_id);
@@ -511,6 +512,34 @@ sub check_psm_voltage
         $status,
         sprintf('Voltages (%s)', join(', ', @messages))
     );
+}
+
+sub check_pu_access
+{
+    my ($session, $device_id) = @_;
+    my $oid_base_text    = '1.3.6.1.4.1.2606.7.4.2.2.1.10.' . $device_id;
+    my $oid_base_value   = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
+    my $oid_status_text  = $oid_base_text . '.15';
+    my $oid_status_value = $oid_base_value . '.15';
+    my $result_status    = OK;
+
+    if (!grep(/^access$/, @sensors_enabled)) {
+        return;
+    }
+
+    $result = $session->get_request(
+        -varbindlist => [
+            $oid_status_text,
+            $oid_status_value
+        ]
+    );
+    my $status_text = $result->{$oid_status_text};
+    my $status_value = $result->{$oid_status_value};
+    if ($status_value == 12) {
+        $result_status = CRITICAL;
+    }
+
+    $mp->add_message($result_status, 'Door: ' . $status_text);
 }
 
 sub check_pu_input
