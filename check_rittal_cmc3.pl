@@ -78,6 +78,11 @@ $mp->add_arg(
     default => []
 );
 
+$mp->add_arg(
+    spec    => 'use_device_alias',
+    help    => 'Use the device alias as status text. This works only with some devices.',
+    default => 0
+);
 
 $mp->getopts;
 
@@ -105,6 +110,7 @@ if (!defined($session)) {
 
 my $cmcIIINumberOfDevs  = '1.3.6.1.4.1.2606.7.4.1.1.2.0';
 my $cmcIIIDevName       = "1.3.6.1.4.1.2606.7.4.1.2.1.2.";
+my $cmcIIIDevAlias      = '1.3.6.1.4.1.2606.7.4.1.2.1.3.';
 my $cmcIIIDevType       = "1.3.6.1.4.1.2606.7.4.1.2.1.4.";
 
 my $result;
@@ -139,11 +145,16 @@ foreach my $device_id (@{$mp->opts->device}) {
         wrap_exit( UNKNOWN, 'Device ID not found');
     }
 
+    my $request_values = [
+        $cmcIIIDevName . $device_id,
+        $cmcIIIDevType . $device_id
+    ];
+    if ($mp->opts->use_device_alias) {
+        push $request_values, $cmcIIIDevAlias . $device_id;
+    }
+
     $result = $session->get_request(
-        -varbindlist => [
-            $cmcIIIDevName . $device_id,
-            $cmcIIIDevType . $device_id
-        ]
+        -varbindlist => $request_values
     );
 
     if (!defined($result)) {
@@ -153,6 +164,10 @@ foreach my $device_id (@{$mp->opts->device}) {
     }
 
     $device_name = $result->{$cmcIIIDevName . $device_id};
+    my $status_label = 'Status';
+    if ($mp->opts->use_device_alias) {
+        $status_label  = $result->{$cmcIIIDevAlias . $device_id};
+    }
     $device_type = $result->{$cmcIIIDevType . $device_id};
     if($device_name eq 'CMCIII-HUM') {
         check_humidity($session, $device_id);
@@ -160,7 +175,7 @@ foreach my $device_id (@{$mp->opts->device}) {
     } elsif($device_name eq 'CMCIII-IO3') {
         check_io3_input($session, $device_id);
     } elsif($device_name eq 'CMCIII-LEAK') {
-        check_leak($session, $device_id);
+        check_leak($session, $device_id, $status_label);
     } elsif($device_name eq 'PSM-M16') {
         check_psm_current($session, $device_id, 2, 3);
         check_psm_power($session, $device_id, 2, 3);
@@ -273,7 +288,7 @@ sub check_io3_input
 
 sub check_leak
 {
-    my ($session, $device_id) = @_;
+    my ($session, $device_id, $status_label) = @_;
     my $oid_base_text    = '1.3.6.1.4.1.2606.7.4.2.2.1.10.' . $device_id;
     my $oid_base_value   = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
     my $oid_status_text  = $oid_base_text . '.4';
@@ -296,7 +311,7 @@ sub check_leak
         $result_status = CRITICAL;
     }
 
-    $mp->add_message($result_status, 'Status: ' . $status_text);
+    $mp->add_message($result_status, $status_label . ': ' . $status_text);
 }
 
 sub check_psm_current
