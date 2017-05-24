@@ -50,7 +50,7 @@ $mp->add_arg(
 );
 
 $mp->add_arg(
-    spec => 'device|D=s',
+    spec => 'device|D=s@',
     help => ''
 );
 
@@ -134,44 +134,44 @@ if($mp->opts->scan) {
     exit(UNKNOWN);
 }
 
-if($mp->opts->device < 1 || $mp->opts->device > $device_number) {
-    wrap_exit( UNKNOWN, 'Device ID not found');
-}
+foreach my $device_id (@{$mp->opts->device}) {
+    if($device_id < 1 || $device_id > $device_number) {
+        wrap_exit( UNKNOWN, 'Device ID not found');
+    }
 
-my $device_id = $mp->opts->device;
+    $result = $session->get_request(
+        -varbindlist => [
+            $cmcIIIDevName . $device_id,
+            $cmcIIIDevType . $device_id
+        ]
+    );
 
-$result = $session->get_request(
-    -varbindlist => [
-        $cmcIIIDevName . $device_id,
-        $cmcIIIDevType . $device_id
-    ]
-);
+    if (!defined($result)) {
+        my $error_msg = $session->error;
+        $session->close;
+        wrap_exit(UNKNOWN, $error_msg)
+    }
 
-if (!defined($result)) {
-    my $error_msg = $session->error;
-    $session->close;
-    wrap_exit(UNKNOWN, $error_msg)
-}
-
-$device_name = $result->{$cmcIIIDevName . $device_id};
-$device_type = $result->{$cmcIIIDevType . $device_id};
-if($device_name eq 'CMCIII-HUM') {
-    check_humidity($session, $device_id);
-    check_temp($session, $device_id);
-} elsif($device_name eq 'CMCIII-IO3') {
-    check_io3_input($session, $device_id);
-} elsif($device_name eq 'CMCIII-LEAK') {
-    check_leak($session, $device_id);
-} elsif($device_name eq 'PSM-M16') {
-    check_psm_current($session, $device_id, 2, 3);
-    check_psm_power($session, $device_id, 2, 3);
-    check_psm_voltage($session, $device_id, 2, 3);
-} elsif($device_name eq 'CMCIII-PU') {
-    check_temp($session, $device_id);
-} elsif($device_name eq 'CMCIII-TMP') {
-    check_temp($session, $device_id);
-} else {
-    wrap_exit( UNKNOWN, 'Unsupported device: Name: ' . $device_name . ' Type: ' . $device_type);
+    $device_name = $result->{$cmcIIIDevName . $device_id};
+    $device_type = $result->{$cmcIIIDevType . $device_id};
+    if($device_name eq 'CMCIII-HUM') {
+        check_humidity($session, $device_id);
+        check_temp($session, $device_id);
+    } elsif($device_name eq 'CMCIII-IO3') {
+        check_io3_input($session, $device_id);
+    } elsif($device_name eq 'CMCIII-LEAK') {
+        check_leak($session, $device_id);
+    } elsif($device_name eq 'PSM-M16') {
+        check_psm_current($session, $device_id, 2, 3);
+        check_psm_power($session, $device_id, 2, 3);
+        check_psm_voltage($session, $device_id, 2, 3);
+    } elsif($device_name eq 'CMCIII-PU') {
+        check_temp($session, $device_id);
+    } elsif($device_name eq 'CMCIII-TMP') {
+        check_temp($session, $device_id);
+    } else {
+        wrap_exit( UNKNOWN, 'Unsupported device: Name: ' . $device_name . ' Type: ' . $device_type);
+    }
 }
 
 my ($code, $message) = $mp->check_messages();
