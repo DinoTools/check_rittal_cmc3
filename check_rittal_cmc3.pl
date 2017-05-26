@@ -172,7 +172,9 @@ foreach my $device_id (@{$mp->opts->device}) {
         $status_label  = $result->{$cmcIIIDevAlias . $device_id};
     }
     $device_type = $result->{$cmcIIIDevType . $device_id};
-    if($device_name eq 'CMCIII-HUM') {
+    if($device_name eq 'CMCIII-ACC') {
+        check_acc($session, $device_id, $status_label);
+    } elsif($device_name eq 'CMCIII-HUM') {
         check_humidity($session, $device_id);
         check_temp($session, $device_id);
     } elsif($device_name eq 'CMCIII-IO3') {
@@ -205,6 +207,37 @@ sub wrap_exit
     } else {
         $mp->nagios_exit( @_ );
     }
+}
+
+sub check_acc
+{
+    my ($session, $device_id, $status_label) = @_;
+    my $oid_base_text    = '1.3.6.1.4.1.2606.7.4.2.2.1.10.' . $device_id;
+    my $oid_base_value   = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
+    my $oid_status_text  = $oid_base_text . '.5';
+    my $oid_status_value = $oid_base_value . '.5';
+    my $result_status    = OK;
+
+    if (!grep(/^access$/, @sensors_enabled)) {
+        return;
+    }
+
+    $result = $session->get_request(
+        -varbindlist => [
+            $oid_status_text,
+            $oid_status_value
+        ]
+    );
+    my $status_text = $result->{$oid_status_text};
+    my $status_value = $result->{$oid_status_value};
+    print($status_value);
+    # 12 = open
+    # 13 = closed
+    if ($status_value != 13) {
+        $result_status = CRITICAL;
+    }
+
+    $mp->add_message($result_status, $status_label . ': ' . $status_text);
 }
 
 sub check_humidity
