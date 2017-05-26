@@ -84,6 +84,12 @@ $mp->add_arg(
     default => 0
 );
 
+$mp->add_arg(
+    spec    => 'use_sensor_name',
+    help    => 'Use the name/description of the sensor as status text. This works only with some devices.',
+    default => 0
+);
+
 $mp->getopts;
 
 if(@{$mp->opts->sensor} == 0 || grep(/^all$/, @{$mp->opts->sensor})) {
@@ -214,6 +220,7 @@ sub check_acc
     my ($session, $device_id, $status_label) = @_;
     my $oid_base_text    = '1.3.6.1.4.1.2606.7.4.2.2.1.10.' . $device_id;
     my $oid_base_value   = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
+    my $oid_sensor_name  = $oid_base_text . '.1';
     my $oid_status_text  = $oid_base_text . '.5';
     my $oid_status_value = $oid_base_value . '.5';
     my $result_status    = OK;
@@ -222,15 +229,26 @@ sub check_acc
         return;
     }
 
+    my $request_values = [
+        $oid_status_text,
+        $oid_status_value
+    ];
+    # Sensor name
+    if ($mp->opts->use_sensor_name) {
+        push $request_values, $oid_sensor_name;
+    }
+
     $result = $session->get_request(
-        -varbindlist => [
-            $oid_status_text,
-            $oid_status_value
-        ]
+        -varbindlist => $request_values
     );
     my $status_text = $result->{$oid_status_text};
     my $status_value = $result->{$oid_status_value};
-    print($status_value);
+
+    # Use Sensor name as status label
+    if ($mp->opts->use_sensor_name) {
+        $status_label  = $result->{$oid_sensor_name};
+    }
+
     # 12 = open
     # 13 = closed
     if ($status_value != 13) {
