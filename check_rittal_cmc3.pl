@@ -570,27 +570,43 @@ sub check_pu_access
     my ($session, $device_id) = @_;
     my $oid_base_text    = '1.3.6.1.4.1.2606.7.4.2.2.1.10.' . $device_id;
     my $oid_base_value   = '1.3.6.1.4.1.2606.7.4.2.2.1.11.' . $device_id;
+    my $oid_sensor_name  = $oid_base_text . '.11';
     my $oid_status_text  = $oid_base_text . '.15';
     my $oid_status_value = $oid_base_value . '.15';
     my $result_status    = OK;
+    my $status_label     = 'Door';
 
     if (!grep(/^access$/, @sensors_enabled)) {
         return;
     }
 
+    my $request_values = [
+        $oid_status_text,
+        $oid_status_value
+    ];
+    # Sensor name
+    if ($mp->opts->use_sensor_name) {
+        push $request_values, $oid_sensor_name;
+    }
+
     $result = $session->get_request(
-        -varbindlist => [
-            $oid_status_text,
-            $oid_status_value
-        ]
+        -varbindlist => $request_values
     );
     my $status_text = $result->{$oid_status_text};
     my $status_value = $result->{$oid_status_value};
-    if ($status_value == 12) {
+
+    # Use Sensor name as status label
+    if ($mp->opts->use_sensor_name) {
+        $status_label  = $result->{$oid_sensor_name};
+    }
+
+    # 12 = open
+    # 13 = closed
+    if ($status_value != 13) {
         $result_status = CRITICAL;
     }
 
-    $mp->add_message($result_status, 'Door: ' . $status_text);
+    $mp->add_message($result_status, $status_label . ': ' . $status_text);
 }
 
 sub check_pu_input
