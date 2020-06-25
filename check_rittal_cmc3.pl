@@ -159,7 +159,7 @@ foreach my $device_id (@{$mp->opts->device}) {
         $cmcIIIDevType . $device_id
     ];
     if ($mp->opts->use_device_alias) {
-        push $request_values, $cmcIIIDevAlias . $device_id;
+        push @{$request_values}, $cmcIIIDevAlias . $device_id;
     }
 
     $result = $session->get_request(
@@ -235,7 +235,7 @@ sub check_acc
     ];
     # Sensor name
     if ($mp->opts->use_sensor_name) {
-        push $request_values, $oid_sensor_name;
+        push @{$request_values}, $oid_sensor_name;
     }
 
     $result = $session->get_request(
@@ -586,7 +586,7 @@ sub check_pu_access
     ];
     # Sensor name
     if ($mp->opts->use_sensor_name) {
-        push $request_values, $oid_sensor_name;
+        push @{$request_values}, $oid_sensor_name;
     }
 
     $result = $session->get_request(
