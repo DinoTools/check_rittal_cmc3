@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: none
+# SPDX-License-Identifier: CC0-1.0
+
+site_name: Check Rittal CMC3
+site_description: Check Rittal CMC3 with Monitoring Tools like Icinga, Nagios and others
+site_url: https://dinotools.github.io/check_rittal_cmc3/
+
+repo_name: DinoTools/check_rittal_cmc3
+repo_url: https://github.com/DinoTools/check_rittal_cmc3/
+edit_uri: blob/master/docs/
+
+nav:
+    - Home: index.md
+    - Usage: usage.md
+    - License: LICENSE.md
+    - Issue Tracker: https://github.com/DinoTools/check_rittal_cmc3/issues
+    - Git Repo: https://github.com/DinoTools/check_rittal_cmc3
+
+docs_dir: docs
+
+theme:
+    name: material
+    # Don't load external fonts
+    font: false
+    icon:
+        repo: fontawesome/brands/github
+
+markdown_extensions:
+    - attr_list
+    - def_list
+    - pymdownx.highlight
+    - pymdownx.superfences
