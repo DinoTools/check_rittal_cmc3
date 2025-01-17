@@ -1,4 +1,7 @@
 #!/usr/bin/perl
+# SPDX-FileCopyrightText: PhiBo from DinoTools.org (2015-)
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 use strict;
 use warnings FATAL => 'all';
 
