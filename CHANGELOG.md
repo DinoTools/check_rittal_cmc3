@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.5 (2025-01-20)
+----------------
+
+- Change how the values are checked. Now also the lower thresholds are checked and reported
+- Add additional documentation
+
 0.4 (2020-06-26)
 ----------------
 

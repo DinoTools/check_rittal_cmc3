@@ -12,6 +12,7 @@ edit_uri: blob/master/docs/
 nav:
     - Home: index.md
     - Usage: usage.md
+    - CHANGELOG: CANGELOG.md
     - License: LICENSE.md
     - Issue Tracker: https://github.com/DinoTools/check_rittal_cmc3/issues
     - Git Repo: https://github.com/DinoTools/check_rittal_cmc3
