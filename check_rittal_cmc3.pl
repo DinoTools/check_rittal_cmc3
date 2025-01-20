@@ -292,8 +292,8 @@ sub check_humidity
     my $low_warning = $result->{$oid_low_warning} / 100;
 
     my $threshold = Monitoring::Plugin::Threshold->set_thresholds(
-        warning   => $high_warning,
-        critical  => $high_critical
+        warning   => sprintf('%u:%u', $low_warning, $high_warning),
+        critical  => sprintf('%u:%u', $low_critical, $high_critical)
     );
 
     $mp->add_perfdata(
@@ -420,8 +420,8 @@ sub check_psm_current
             my $low_warning = $result->{$oid_low_warning} / 100;
 
             my $threshold = Monitoring::Plugin::Threshold->set_thresholds(
-                warning   => $high_warning,
-                critical  => $high_critical
+                warning   => sprintf('%u:%u', $low_warning, $high_warning),
+                critical  => sprintf('%u:%u', $low_critical, $high_critical)
             );
 
             $mp->add_perfdata(
@@ -549,8 +549,8 @@ sub check_psm_voltage
             my $low_warning = $result->{$oid_low_warning} / 10;
 
             my $threshold = Monitoring::Plugin::Threshold->set_thresholds(
-                warning   => $high_warning,
-                critical  => $high_critical
+                warning   => sprintf('%u:%u', $low_warning, $high_warning),
+                critical  => sprintf('%u:%u', $low_critical, $high_critical)
             );
 
             $mp->add_perfdata(
@@ -685,8 +685,8 @@ sub check_pu_temp
     my $low_warning = $result->{$oid_low_warning} / 100;
 
     my $threshold = Monitoring::Plugin::Threshold->set_thresholds(
-        warning   => $high_warning,
-        critical  => $high_critical
+        warning   => sprintf('%u:%u', $low_warning, $high_warning),
+        critical  => sprintf('%u:%u', $low_critical, $high_critical)
     );
 
     $mp->add_perfdata(
@@ -728,8 +728,8 @@ sub check_temp
     my $low_warning = $result->{$oid_low_warning} / 100;
 
     my $threshold = Monitoring::Plugin::Threshold->set_thresholds(
-        warning   => $high_warning,
-        critical  => $high_critical
+        warning   => sprintf('%u:%u', $low_warning, $high_warning),
+        critical  => sprintf('%u:%u', $low_critical, $high_critical)
     );
 
     $mp->add_perfdata(
