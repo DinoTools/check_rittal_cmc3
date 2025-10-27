@@ -3,7 +3,7 @@
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       # Prevent giant files from being committed
       - id: check-added-large-files
@@ -47,7 +47,7 @@ repos:
   # The REUSE helper tool assists with achieving and confirming REUSE compliance.
   # See: https://reuse.software/
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v5.0.2
+    rev: v6.2.0
     hooks:
       - id: reuse
 
